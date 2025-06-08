@@ -4,14 +4,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
-interface Vote {
-  symbol: string;
-  vote: 'UP' | 'DOWN';
-  count: number;
+interface VoteData {
+  up: number;
+  down: number;
 }
 
 export function useVotes(symbol: string) {
-  const [votes, setVotes] = useState({ up: 0, down: 0 });
+  const [votes, setVotes] = useState<VoteData>({ up: 0, down: 0 });
   const [userVote, setUserVote] = useState<'UP' | 'DOWN' | null>(null);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
@@ -23,7 +22,7 @@ export function useVotes(symbol: string) {
       fetchUserVote();
     }
 
-    // Set up real-time subscription for votes
+    // Subscribe to real-time vote updates
     const channel = supabase
       .channel(`votes-${symbol}`)
       .on(
@@ -78,7 +77,8 @@ export function useVotes(symbol: string) {
 
       if (error && error.code !== 'PGRST116') throw error;
 
-      setUserVote(data?.vote || null);
+      // Type assertion for proper typing
+      setUserVote(data?.vote as 'UP' | 'DOWN' || null);
     } catch (error) {
       console.error('Error fetching user vote:', error);
     }
@@ -95,35 +95,33 @@ export function useVotes(symbol: string) {
     }
 
     try {
-      if (userVote === direction) return;
+      setLoading(true);
 
-      if (userVote) {
-        // Update existing vote
+      if (userVote === direction) {
+        // Remove vote if clicking same direction
         const { error } = await supabase
           .from('user_votes')
-          .update({ vote: direction })
+          .delete()
           .eq('user_id', user.id)
           .eq('symbol', symbol);
 
         if (error) throw error;
+        setUserVote(null);
       } else {
-        // Insert new vote
+        // Insert or update vote
         const { error } = await supabase
           .from('user_votes')
-          .insert({
+          .upsert({
             user_id: user.id,
             symbol,
             vote: direction
           });
 
         if (error) throw error;
+        setUserVote(direction);
       }
 
-      setUserVote(direction);
-      toast({
-        title: "Vote recorded!",
-        description: `You voted ${direction} for ${symbol}`,
-      });
+      await fetchVotes();
     } catch (error) {
       console.error('Error voting:', error);
       toast({
@@ -131,6 +129,8 @@ export function useVotes(symbol: string) {
         description: "Failed to record vote",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 

@@ -1,52 +1,41 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
-interface Prediction {
+export interface Prediction {
   id: string;
   symbol: string;
   direction: 'UP' | 'DOWN';
   confidence: number;
   target_price: number;
-  reasoning: string;
-  sentiment: number;
+  reasoning: string | null;
+  sentiment: number | null;
   created_at: string;
   expires_at: string;
-  actual_outcome: 'UP' | 'DOWN' | 'PENDING' | null;
+  actual_outcome: string | null;
 }
 
 export function usePredictions() {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchPredictions();
-    
-    // Set up real-time subscription
+
+    // Subscribe to real-time updates
     const channel = supabase
       .channel('predictions-changes')
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'predictions'
         },
-        (payload) => {
-          setPredictions(prev => [payload.new as Prediction, ...prev]);
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'predictions'
-        },
-        (payload) => {
-          setPredictions(prev => 
-            prev.map(p => p.id === payload.new.id ? payload.new as Prediction : p)
-          );
+        () => {
+          fetchPredictions();
         }
       )
       .subscribe();
@@ -62,11 +51,17 @@ export function usePredictions() {
         .from('predictions')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(20);
+        .limit(50);
 
       if (error) throw error;
 
-      setPredictions(data || []);
+      // Type assertion to ensure proper typing
+      const typedPredictions = data?.map(prediction => ({
+        ...prediction,
+        direction: prediction.direction as 'UP' | 'DOWN'
+      })) || [];
+
+      setPredictions(typedPredictions);
     } catch (error) {
       console.error('Error fetching predictions:', error);
     } finally {
@@ -74,17 +69,29 @@ export function usePredictions() {
     }
   };
 
-  const getPredictionForSymbol = (symbol: string) => {
-    return predictions.find(p => 
-      p.symbol === symbol && 
-      new Date(p.expires_at) > new Date()
-    );
+  const addPrediction = async (prediction: Omit<Prediction, 'id' | 'created_at' | 'expires_at'>) => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('predictions')
+        .insert([prediction])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      return data;
+    } catch (error) {
+      console.error('Error adding prediction:', error);
+      throw error;
+    }
   };
 
   return {
     predictions,
     loading,
-    getPredictionForSymbol,
-    refetch: fetchPredictions
+    addPrediction,
+    fetchPredictions
   };
 }
