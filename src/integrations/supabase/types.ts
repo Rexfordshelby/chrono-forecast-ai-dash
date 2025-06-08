@@ -9,7 +9,114 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      predictions: {
+        Row: {
+          actual_outcome: string | null
+          confidence: number
+          created_at: string
+          direction: string
+          expires_at: string
+          id: string
+          reasoning: string | null
+          sentiment: number | null
+          symbol: string
+          target_price: number
+        }
+        Insert: {
+          actual_outcome?: string | null
+          confidence: number
+          created_at?: string
+          direction: string
+          expires_at?: string
+          id?: string
+          reasoning?: string | null
+          sentiment?: number | null
+          symbol: string
+          target_price: number
+        }
+        Update: {
+          actual_outcome?: string | null
+          confidence?: number
+          created_at?: string
+          direction?: string
+          expires_at?: string
+          id?: string
+          reasoning?: string | null
+          sentiment?: number | null
+          symbol?: string
+          target_price?: number
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          id: string
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          id: string
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      user_favorites: {
+        Row: {
+          created_at: string
+          id: string
+          symbol: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          symbol: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          symbol?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_votes: {
+        Row: {
+          created_at: string
+          id: string
+          symbol: string
+          user_id: string
+          vote: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          symbol: string
+          user_id: string
+          vote: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          symbol?: string
+          user_id?: string
+          vote?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

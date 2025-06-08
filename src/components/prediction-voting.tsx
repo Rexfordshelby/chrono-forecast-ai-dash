@@ -1,9 +1,8 @@
 
-import { useState } from 'react';
+import { TrendingUp, TrendingDown, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { TrendingUp, TrendingDown, Users } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { useVotes } from '@/hooks/useVotes';
 
 interface PredictionVotingProps {
   symbol: string;
@@ -11,27 +10,21 @@ interface PredictionVotingProps {
 }
 
 export function PredictionVoting({ symbol, prediction }: PredictionVotingProps) {
-  const [userVote, setUserVote] = useState<'UP' | 'DOWN' | null>(null);
-  const [votes, setVotes] = useState({ up: 127, down: 43 }); // Mock data
-  const { toast } = useToast();
-
-  const handleVote = (direction: 'UP' | 'DOWN') => {
-    if (userVote === direction) return;
-    
-    setUserVote(direction);
-    setVotes(prev => ({
-      up: direction === 'UP' ? prev.up + 1 : Math.max(0, prev.up - (userVote === 'UP' ? 1 : 0)),
-      down: direction === 'DOWN' ? prev.down + 1 : Math.max(0, prev.down - (userVote === 'DOWN' ? 1 : 0))
-    }));
-
-    toast({
-      title: "Vote Recorded!",
-      description: `You voted ${direction} for ${symbol}`,
-    });
-  };
+  const { votes, userVote, loading, vote } = useVotes(symbol);
 
   const totalVotes = votes.up + votes.down;
   const upPercentage = totalVotes > 0 ? (votes.up / totalVotes) * 100 : 50;
+
+  if (loading) {
+    return (
+      <Card className="p-4 bg-accent/50">
+        <div className="animate-pulse space-y-4">
+          <div className="h-4 bg-muted rounded"></div>
+          <div className="h-8 bg-muted rounded"></div>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card className="p-4 bg-accent/50">
@@ -39,13 +32,15 @@ export function PredictionVoting({ symbol, prediction }: PredictionVotingProps) 
         <div className="flex items-center gap-2">
           <Users className="h-4 w-4 text-primary" />
           <h4 className="font-semibold">Community Prediction</h4>
+          <span className="text-sm text-muted-foreground">({totalVotes} votes)</span>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <Button
             variant={userVote === 'UP' ? 'default' : 'outline'}
-            onClick={() => handleVote('UP')}
+            onClick={() => vote('UP')}
             className="flex items-center gap-2 h-12"
+            disabled={loading}
           >
             <TrendingUp className="h-4 w-4" />
             <div className="text-left">
@@ -56,8 +51,9 @@ export function PredictionVoting({ symbol, prediction }: PredictionVotingProps) 
 
           <Button
             variant={userVote === 'DOWN' ? 'destructive' : 'outline'}
-            onClick={() => handleVote('DOWN')}
+            onClick={() => vote('DOWN')}
             className="flex items-center gap-2 h-12"
+            disabled={loading}
           >
             <TrendingDown className="h-4 w-4" />
             <div className="text-left">

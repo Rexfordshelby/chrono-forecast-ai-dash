@@ -4,21 +4,14 @@ import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
 import { DashboardHeader } from '@/components/dashboard-header';
 import { StockSearch } from '@/components/stock-search';
-import { StockCard } from '@/components/stock-card';
+import { EnhancedStockCard } from '@/components/enhanced-stock-card';
 import { PredictionHistory } from '@/components/prediction-history';
 import { NewsSection } from '@/components/news-section';
+import { useFavorites } from '@/hooks/useFavorites';
 
 const Index = () => {
   const [selectedStock, setSelectedStock] = useState('AAPL');
-  const [favorites, setFavorites] = useState<string[]>(['AAPL', 'TSLA', 'MSFT']);
-
-  const toggleFavorite = (symbol: string) => {
-    setFavorites(prev => 
-      prev.includes(symbol) 
-        ? prev.filter(s => s !== symbol)
-        : [...prev, symbol]
-    );
-  };
+  const { favorites } = useFavorites();
 
   return (
     <SidebarProvider>
@@ -37,11 +30,7 @@ const Index = () => {
                   onSelectStock={setSelectedStock}
                   selectedStock={selectedStock}
                 />
-                <StockCard 
-                  symbol={selectedStock}
-                  isFavorite={favorites.includes(selectedStock)}
-                  onToggleFavorite={() => toggleFavorite(selectedStock)}
-                />
+                <EnhancedStockCard symbol={selectedStock} />
                 <NewsSection symbol={selectedStock} />
               </div>
               <div className="lg:w-80">
