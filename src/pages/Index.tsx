@@ -1,13 +1,57 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import { useState } from 'react';
+import { SidebarProvider } from '@/components/ui/sidebar';
+import { AppSidebar } from '@/components/app-sidebar';
+import { DashboardHeader } from '@/components/dashboard-header';
+import { StockSearch } from '@/components/stock-search';
+import { StockCard } from '@/components/stock-card';
+import { PredictionHistory } from '@/components/prediction-history';
+import { NewsSection } from '@/components/news-section';
 
 const Index = () => {
+  const [selectedStock, setSelectedStock] = useState('AAPL');
+  const [favorites, setFavorites] = useState<string[]>(['AAPL', 'TSLA', 'MSFT']);
+
+  const toggleFavorite = (symbol: string) => {
+    setFavorites(prev => 
+      prev.includes(symbol) 
+        ? prev.filter(s => s !== symbol)
+        : [...prev, symbol]
+    );
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-background">
+        <AppSidebar 
+          favorites={favorites}
+          onSelectStock={setSelectedStock}
+          selectedStock={selectedStock}
+        />
+        <main className="flex-1 flex flex-col">
+          <DashboardHeader />
+          <div className="flex-1 p-6 space-y-6">
+            <div className="flex flex-col lg:flex-row gap-6">
+              <div className="flex-1 space-y-6">
+                <StockSearch 
+                  onSelectStock={setSelectedStock}
+                  selectedStock={selectedStock}
+                />
+                <StockCard 
+                  symbol={selectedStock}
+                  isFavorite={favorites.includes(selectedStock)}
+                  onToggleFavorite={() => toggleFavorite(selectedStock)}
+                />
+                <NewsSection symbol={selectedStock} />
+              </div>
+              <div className="lg:w-80">
+                <PredictionHistory />
+              </div>
+            </div>
+          </div>
+        </main>
       </div>
-    </div>
+    </SidebarProvider>
   );
 };
 
