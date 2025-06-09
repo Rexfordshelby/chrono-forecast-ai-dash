@@ -91,10 +91,12 @@ export function useFavorites() {
     }
   };
 
+  const isFavorite = (symbol: string) => favorites.includes(symbol);
+
   return {
     favorites,
     loading,
     toggleFavorite,
-    isFavorite: (symbol: string) => favorites.includes(symbol)
+    isFavorite
   };
 }

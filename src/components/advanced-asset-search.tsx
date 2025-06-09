@@ -28,7 +28,7 @@ export function AdvancedAssetSearch({ onSelectAsset, selectedAsset }: AssetSearc
   const [loading, setLoading] = useState(false);
   const [activeCategory, setActiveCategory] = useState('stocks');
   const [popularAssets, setPopularAssets] = useState<{ [key: string]: EnhancedAssetData[] }>({});
-  const { favorites, addToFavorites, removeFromFavorites } = useFavorites();
+  const { favorites, toggleFavorite } = useFavorites();
 
   useEffect(() => {
     loadPopularAssets();
@@ -105,13 +105,9 @@ export function AdvancedAssetSearch({ onSelectAsset, selectedAsset }: AssetSearc
     onSelectAsset(symbol);
   };
 
-  const toggleFavorite = (symbol: string, e: React.MouseEvent) => {
+  const handleToggleFavorite = (symbol: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (favorites.includes(symbol)) {
-      removeFromFavorites(symbol);
-    } else {
-      addToFavorites(symbol);
-    }
+    toggleFavorite(symbol);
   };
 
   const renderAssetCard = (asset: EnhancedAssetData) => (
@@ -149,7 +145,7 @@ export function AdvancedAssetSearch({ onSelectAsset, selectedAsset }: AssetSearc
           <Button
             variant="ghost"
             size="icon"
-            onClick={(e) => toggleFavorite(asset.symbol, e)}
+            onClick={(e) => handleToggleFavorite(asset.symbol, e)}
             className="h-8 w-8"
           >
             {favorites.includes(asset.symbol) ? (
@@ -249,7 +245,7 @@ export function AdvancedAssetSearch({ onSelectAsset, selectedAsset }: AssetSearc
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={(e) => toggleFavorite(symbol, e)}
+                      onClick={(e) => handleToggleFavorite(symbol, e)}
                       className="h-6 w-6"
                     >
                       <Star className="h-3 w-3 fill-current text-yellow-500" />

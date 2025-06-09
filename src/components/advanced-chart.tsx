@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, CandlestickChart, ReferenceLine } from 'recharts';
-import { TrendingUp, TrendingDown, BarChart3, Candlestick, Activity } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, ReferenceLine } from 'recharts';
+import { TrendingUp, TrendingDown, BarChart3, Activity } from 'lucide-react';
 import { fetchChartData, fetchEnhancedAssetData, ChartData, EnhancedAssetData } from '@/lib/enhanced-api';
 
 interface AdvancedChartProps {
@@ -43,7 +43,7 @@ export function AdvancedChart({ symbol }: AdvancedChartProps) {
   const [chartData, setChartData] = useState<ProcessedChartData[]>([]);
   const [assetData, setAssetData] = useState<EnhancedAssetData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [chartType, setChartType] = useState<'line' | 'candlestick'>('line');
+  const [chartType, setChartType] = useState<'line' | 'bar'>('line');
   const [interval, setInterval] = useState('1d');
   const [period, setPeriod] = useState('30d');
   const [showIndicators, setShowIndicators] = useState({
@@ -240,11 +240,11 @@ export function AdvancedChart({ symbol }: AdvancedChartProps) {
               <Activity className="h-4 w-4" />
             </Button>
             <Button
-              variant={chartType === 'candlestick' ? 'default' : 'outline'}
+              variant={chartType === 'bar' ? 'default' : 'outline'}
               size="sm"
-              onClick={() => setChartType('candlestick')}
+              onClick={() => setChartType('bar')}
             >
-              <Candlestick className="h-4 w-4" />
+              <BarChart3 className="h-4 w-4" />
             </Button>
           </div>
         </div>

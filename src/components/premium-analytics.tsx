@@ -49,7 +49,7 @@ export function PremiumAnalytics() {
     setAnalyticsData(mockData);
   };
 
-  const upgradeToпремium = () => {
+  const upgradeToPremium = () => {
     // This would integrate with Stripe for payments
     console.log('Upgrade to premium clicked');
   };
@@ -77,7 +77,7 @@ export function PremiumAnalytics() {
               <span>Profit/Loss analysis</span>
             </div>
           </div>
-          <Button onClick={upgradeToремium} className="w-full">
+          <Button onClick={upgradeToPremium} className="w-full">
             <Crown className="h-4 w-4 mr-2" />
             Upgrade to Premium - $9.99/month
           </Button>

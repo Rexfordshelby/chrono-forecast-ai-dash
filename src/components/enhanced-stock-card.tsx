@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { TrendingUp, TrendingDown, Star, RefreshCw } from 'lucide-react';
-import { getEnhancedStockData } from '@/lib/enhanced-api';
+import { fetchEnhancedAssetData } from '@/lib/enhanced-api';
 import { useFavorites } from '@/hooks/useFavorites';
 import { PredictionVoting } from './prediction-voting';
 
@@ -13,11 +13,11 @@ interface EnhancedStockCardProps {
 }
 
 export function EnhancedStockCard({ symbol }: EnhancedStockCardProps) {
-  const { isFavorite, toggleFavorite } = useFavorites();
+  const { favorites, toggleFavorite } = useFavorites();
   
   const { data: stockData, isLoading, error, refetch } = useQuery({
     queryKey: ['enhanced-stock', symbol],
-    queryFn: () => getEnhancedStockData(symbol),
+    queryFn: () => fetchEnhancedAssetData(symbol),
     refetchInterval: 30000, // Refetch every 30 seconds
   });
 
@@ -47,9 +47,7 @@ export function EnhancedStockCard({ symbol }: EnhancedStockCardProps) {
     );
   }
 
-  const { prediction } = stockData;
   const priceColor = stockData.change >= 0 ? 'text-profit' : 'text-loss';
-  const predictionColor = prediction?.direction === 'UP' ? 'text-profit' : 'text-loss';
 
   return (
     <Card className="p-6 card-glow">
@@ -77,56 +75,16 @@ export function EnhancedStockCard({ symbol }: EnhancedStockCardProps) {
           </div>
           
           <Button
-            variant={isFavorite(symbol) ? "default" : "outline"}
+            variant={favorites.includes(symbol) ? "default" : "outline"}
             size="icon"
             onClick={() => toggleFavorite(symbol)}
           >
-            <Star className={`h-4 w-4 ${isFavorite(symbol) ? 'fill-current' : ''}`} />
+            <Star className={`h-4 w-4 ${favorites.includes(symbol) ? 'fill-current' : ''}`} />
           </Button>
         </div>
 
-        {/* AI Prediction */}
-        {prediction && (
-          <div className="p-4 bg-accent/50 rounded-lg border">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="font-semibold flex items-center gap-2">
-                🤖 AI Prediction (24h)
-                <Badge variant="secondary" className="text-xs">
-                  {new Date(prediction.expires_at || Date.now() + 24*60*60*1000).toLocaleDateString()}
-                </Badge>
-              </h4>
-              <div className={`flex items-center gap-2 ${predictionColor}`}>
-                {prediction.direction === 'UP' ? (
-                  <TrendingUp className="h-5 w-5" />
-                ) : (
-                  <TrendingDown className="h-5 w-5" />
-                )}
-                <span className="text-xl font-bold">
-                  {prediction.confidence}% {prediction.direction}
-                </span>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Target Price:</span>
-                <span className="font-mono">${prediction.target_price || prediction.targetPrice}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>Sentiment:</span>
-                <Badge variant={prediction.sentiment > 0 ? 'default' : 'destructive'}>
-                  {prediction.sentiment > 0 ? 'Bullish' : 'Bearish'} ({(prediction.sentiment * 100).toFixed(0)}%)
-                </Badge>
-              </div>
-              <p className="text-sm text-muted-foreground mt-2">
-                {prediction.reasoning}
-              </p>
-            </div>
-          </div>
-        )}
-
         {/* Community Voting */}
-        <PredictionVoting symbol={symbol} prediction={prediction} />
+        <PredictionVoting symbol={symbol} />
 
         {/* Market Data */}
         <div className="grid grid-cols-2 gap-4 pt-4 border-t">
