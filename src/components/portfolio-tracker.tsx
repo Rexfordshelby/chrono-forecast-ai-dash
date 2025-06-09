@@ -16,8 +16,8 @@ interface Position {
   id: string;
   symbol: string;
   shares: number;
-  purchase_price: number;
-  purchase_date: string;
+  average_cost: number;
+  created_at: string;
   current_price?: number;
   current_value?: number;
   gain_loss?: number;
@@ -31,7 +31,7 @@ export function PortfolioTracker() {
   const [newPosition, setNewPosition] = useState({
     symbol: '',
     shares: '',
-    purchase_price: ''
+    average_cost: ''
   });
   const { user } = useAuth();
   const { toast } = useToast();
@@ -56,16 +56,20 @@ export function PortfolioTracker() {
 
       // Fetch current prices for all positions
       const positionsWithPrices = await Promise.all(
-        (data || []).map(async (position) => {
+        (data || []).map(async (position: any) => {
           try {
             const stockData = await fetchStockData(position.symbol);
             const currentValue = stockData.price * position.shares;
-            const purchaseValue = position.purchase_price * position.shares;
+            const purchaseValue = position.average_cost * position.shares;
             const gainLoss = currentValue - purchaseValue;
             const gainLossPercent = (gainLoss / purchaseValue) * 100;
 
             return {
-              ...position,
+              id: position.id,
+              symbol: position.symbol,
+              shares: position.shares,
+              average_cost: position.average_cost,
+              created_at: position.created_at,
               current_price: stockData.price,
               current_value: currentValue,
               gain_loss: gainLoss,
@@ -73,7 +77,13 @@ export function PortfolioTracker() {
             };
           } catch (error) {
             console.error(`Error fetching price for ${position.symbol}:`, error);
-            return position;
+            return {
+              id: position.id,
+              symbol: position.symbol,
+              shares: position.shares,
+              average_cost: position.average_cost,
+              created_at: position.created_at
+            };
           }
         })
       );
@@ -90,13 +100,17 @@ export function PortfolioTracker() {
     if (!user) return;
 
     try {
+      const shares = parseFloat(newPosition.shares);
+      const averageCost = parseFloat(newPosition.average_cost);
+      
       const { error } = await supabase
         .from('user_positions')
         .insert({
           user_id: user.id,
           symbol: newPosition.symbol.toUpperCase(),
-          shares: parseFloat(newPosition.shares),
-          purchase_price: parseFloat(newPosition.purchase_price)
+          shares: shares,
+          average_cost: averageCost,
+          total_cost: shares * averageCost
         });
 
       if (error) throw error;
@@ -106,7 +120,7 @@ export function PortfolioTracker() {
         description: `Added ${newPosition.shares} shares of ${newPosition.symbol}`,
       });
 
-      setNewPosition({ symbol: '', shares: '', purchase_price: '' });
+      setNewPosition({ symbol: '', shares: '', average_cost: '' });
       setAddDialogOpen(false);
       fetchPositions();
     } catch (error) {
@@ -195,13 +209,13 @@ export function PortfolioTracker() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="price">Purchase Price</Label>
+                  <Label htmlFor="price">Average Cost</Label>
                   <Input
                     id="price"
                     type="number"
                     step="0.01"
-                    value={newPosition.purchase_price}
-                    onChange={(e) => setNewPosition({...newPosition, purchase_price: e.target.value})}
+                    value={newPosition.average_cost}
+                    onChange={(e) => setNewPosition({...newPosition, average_cost: e.target.value})}
                     placeholder="150.00"
                   />
                 </div>
@@ -219,7 +233,7 @@ export function PortfolioTracker() {
           </div>
           <div className="p-4 bg-accent/50 rounded-lg">
             <p className="text-sm text-muted-foreground">Total P&L</p>
-            <div className={`text-2xl font-bold ${totalGainLoss >= 0 ? 'text-profit' : 'text-loss'}`}>
+            <div className={`text-2xl font-bold ${totalGainLoss >= 0 ? 'text-green-500' : 'text-red-500'}`}>
               {totalGainLoss >= 0 ? '+' : ''}${totalGainLoss.toFixed(2)}
             </div>
           </div>
@@ -234,7 +248,7 @@ export function PortfolioTracker() {
                   <div>
                     <h4 className="font-semibold">{position.symbol}</h4>
                     <p className="text-sm text-muted-foreground">
-                      {position.shares} shares @ ${position.purchase_price.toFixed(2)}
+                      {position.shares} shares @ ${position.average_cost.toFixed(2)}
                     </p>
                   </div>
                   {position.current_price && (
@@ -245,7 +259,7 @@ export function PortfolioTracker() {
                 </div>
                 <div className="flex items-center gap-2">
                   {position.gain_loss !== undefined && (
-                    <div className={`text-right ${position.gain_loss >= 0 ? 'text-profit' : 'text-loss'}`}>
+                    <div className={`text-right ${position.gain_loss >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                       <div className="flex items-center gap-1">
                         {position.gain_loss >= 0 ? (
                           <TrendingUp className="h-4 w-4" />

@@ -51,7 +51,16 @@ export function AlertsSystem() {
 
       if (error) throw error;
 
-      setAlerts(data || []);
+      const formattedAlerts = (data || []).map((alert: any) => ({
+        id: alert.id,
+        symbol: alert.symbol,
+        alert_type: alert.alert_type.toUpperCase() as 'PRICE_ABOVE' | 'PRICE_BELOW' | 'PREDICTION_COMPLETE',
+        target_value: alert.target_value,
+        is_active: alert.is_active,
+        created_at: alert.created_at
+      }));
+
+      setAlerts(formattedAlerts);
     } catch (error) {
       console.error('Error fetching alerts:', error);
     } finally {
@@ -68,7 +77,7 @@ export function AlertsSystem() {
         .insert({
           user_id: user.id,
           symbol: newAlert.symbol.toUpperCase(),
-          alert_type: newAlert.alert_type,
+          alert_type: newAlert.alert_type.toLowerCase(),
           target_value: newAlert.target_value ? parseFloat(newAlert.target_value) : null
         });
 

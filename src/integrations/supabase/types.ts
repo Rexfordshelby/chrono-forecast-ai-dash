@@ -9,6 +9,98 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      asset_types: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      assets: {
+        Row: {
+          asset_type_id: string | null
+          category: string
+          country: string | null
+          created_at: string
+          currency: string | null
+          description: string | null
+          exchange: string | null
+          id: string
+          industry: string | null
+          is_active: boolean | null
+          logo_url: string | null
+          market_cap: number | null
+          name: string
+          sector: string | null
+          symbol: string
+          updated_at: string
+          website_url: string | null
+        }
+        Insert: {
+          asset_type_id?: string | null
+          category: string
+          country?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          exchange?: string | null
+          id?: string
+          industry?: string | null
+          is_active?: boolean | null
+          logo_url?: string | null
+          market_cap?: number | null
+          name: string
+          sector?: string | null
+          symbol: string
+          updated_at?: string
+          website_url?: string | null
+        }
+        Update: {
+          asset_type_id?: string | null
+          category?: string
+          country?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          exchange?: string | null
+          id?: string
+          industry?: string | null
+          is_active?: boolean | null
+          logo_url?: string | null
+          market_cap?: number | null
+          name?: string
+          sector?: string | null
+          symbol?: string
+          updated_at?: string
+          website_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_asset_type_id_fkey"
+            columns: ["asset_type_id"]
+            isOneToOne: false
+            referencedRelation: "asset_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       predictions: {
         Row: {
           actual_outcome: string | null
@@ -48,6 +140,62 @@ export type Database = {
         }
         Relationships: []
       }
+      price_data: {
+        Row: {
+          asset_id: string | null
+          change_24h: number | null
+          change_percent_24h: number | null
+          data_source: string | null
+          high_price: number | null
+          id: string
+          low_price: number | null
+          market_cap: number | null
+          open_price: number | null
+          price: number
+          symbol: string
+          timestamp: string
+          volume: number | null
+        }
+        Insert: {
+          asset_id?: string | null
+          change_24h?: number | null
+          change_percent_24h?: number | null
+          data_source?: string | null
+          high_price?: number | null
+          id?: string
+          low_price?: number | null
+          market_cap?: number | null
+          open_price?: number | null
+          price: number
+          symbol: string
+          timestamp?: string
+          volume?: number | null
+        }
+        Update: {
+          asset_id?: string | null
+          change_24h?: number | null
+          change_percent_24h?: number | null
+          data_source?: string | null
+          high_price?: number | null
+          id?: string
+          low_price?: number | null
+          market_cap?: number | null
+          open_price?: number | null
+          price?: number
+          symbol?: string
+          timestamp?: string
+          volume?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_data_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -72,6 +220,50 @@ export type Database = {
         }
         Relationships: []
       }
+      user_alerts: {
+        Row: {
+          alert_type: string
+          asset_id: string | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          symbol: string
+          target_value: number
+          triggered_at: string | null
+          user_id: string
+        }
+        Insert: {
+          alert_type: string
+          asset_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          symbol: string
+          target_value: number
+          triggered_at?: string | null
+          user_id: string
+        }
+        Update: {
+          alert_type?: string
+          asset_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          symbol?: string
+          target_value?: number
+          triggered_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_alerts_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_favorites: {
         Row: {
           created_at: string
@@ -92,6 +284,92 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_performance: {
+        Row: {
+          accuracy_rate: number | null
+          correct_predictions: number | null
+          created_at: string
+          id: string
+          points: number | null
+          rank_position: number | null
+          total_predictions: number | null
+          total_return: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accuracy_rate?: number | null
+          correct_predictions?: number | null
+          created_at?: string
+          id?: string
+          points?: number | null
+          rank_position?: number | null
+          total_predictions?: number | null
+          total_return?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accuracy_rate?: number | null
+          correct_predictions?: number | null
+          created_at?: string
+          id?: string
+          points?: number | null
+          rank_position?: number | null
+          total_predictions?: number | null
+          total_return?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_positions: {
+        Row: {
+          asset_id: string | null
+          average_cost: number
+          created_at: string
+          id: string
+          position_type: string | null
+          shares: number
+          symbol: string
+          total_cost: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          asset_id?: string | null
+          average_cost: number
+          created_at?: string
+          id?: string
+          position_type?: string | null
+          shares: number
+          symbol: string
+          total_cost: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          asset_id?: string | null
+          average_cost?: number
+          created_at?: string
+          id?: string
+          position_type?: string | null
+          shares?: number
+          symbol?: string
+          total_cost?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_positions_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_votes: {
         Row: {

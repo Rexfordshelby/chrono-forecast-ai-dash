@@ -3,7 +3,8 @@ import { useState } from 'react';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
 import { DashboardHeader } from '@/components/dashboard-header';
-import { StockSearch } from '@/components/stock-search';
+import { AdvancedAssetSearch } from '@/components/advanced-asset-search';
+import { AdvancedChart } from '@/components/advanced-chart';
 import { EnhancedStockCard } from '@/components/enhanced-stock-card';
 import { PredictionHistory } from '@/components/prediction-history';
 import { NewsSection } from '@/components/news-section';
@@ -15,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFavorites } from '@/hooks/useFavorites';
 
 const Dashboard = () => {
-  const [selectedStock, setSelectedStock] = useState('AAPL');
+  const [selectedAsset, setSelectedAsset] = useState('AAPL');
   const { favorites } = useFavorites();
 
   return (
@@ -23,8 +24,8 @@ const Dashboard = () => {
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar 
           favorites={favorites}
-          onSelectStock={setSelectedStock}
-          selectedStock={selectedStock}
+          onSelectStock={setSelectedAsset}
+          selectedStock={selectedAsset}
         />
         <main className="flex-1 flex flex-col">
           <DashboardHeader />
@@ -38,18 +39,23 @@ const Dashboard = () => {
               </TabsList>
               
               <TabsContent value="trading" className="space-y-6">
-                <div className="flex flex-col lg:flex-row gap-6">
-                  <div className="flex-1 space-y-6">
-                    <StockSearch 
-                      onSelectStock={setSelectedStock}
-                      selectedStock={selectedStock}
+                <div className="grid lg:grid-cols-12 gap-6">
+                  {/* Left Panel - Asset Search */}
+                  <div className="lg:col-span-3 space-y-6">
+                    <AdvancedAssetSearch 
+                      onSelectAsset={setSelectedAsset}
+                      selectedAsset={selectedAsset}
                     />
-                    <EnhancedStockCard symbol={selectedStock} />
-                    <NewsSection symbol={selectedStock} />
-                  </div>
-                  <div className="lg:w-80 space-y-6">
-                    <PredictionHistory />
                     <AlertsSystem />
+                  </div>
+                  
+                  {/* Main Panel - Charts and Analysis */}
+                  <div className="lg:col-span-9 space-y-6">
+                    <AdvancedChart symbol={selectedAsset} />
+                    <div className="grid lg:grid-cols-2 gap-6">
+                      <EnhancedStockCard symbol={selectedAsset} />
+                      <NewsSection symbol={selectedAsset} />
+                    </div>
                   </div>
                 </div>
               </TabsContent>
@@ -71,7 +77,7 @@ const Dashboard = () => {
                   <Leaderboard />
                   <div className="space-y-6">
                     <PredictionHistory />
-                    <EnhancedStockCard symbol={selectedStock} />
+                    <EnhancedStockCard symbol={selectedAsset} />
                   </div>
                 </div>
               </TabsContent>
