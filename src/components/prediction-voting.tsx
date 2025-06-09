@@ -6,7 +6,7 @@ import { useVotes } from '@/hooks/useVotes';
 
 interface PredictionVotingProps {
   symbol: string;
-  prediction: any;
+  prediction?: any;
 }
 
 export function PredictionVoting({ symbol, prediction }: PredictionVotingProps) {

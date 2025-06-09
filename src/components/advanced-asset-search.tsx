@@ -5,33 +5,32 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, TrendingUp, TrendingDown, Star, StarOff } from 'lucide-react';
+import { Search, TrendingUp, TrendingDown, Star, StarOff, Plus, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchEnhancedAssetData, EnhancedAssetData } from '@/lib/enhanced-api';
 import { useFavorites } from '@/hooks/useFavorites';
+import { useToast } from '@/hooks/use-toast';
+import { seedStockData } from '@/lib/stock-seeder';
 
 interface AssetSearchProps {
   onSelectAsset: (symbol: string) => void;
   selectedAsset?: string;
 }
 
-const POPULAR_ASSETS = {
-  stocks: ['AAPL', 'TSLA', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'NFLX'],
-  crypto: ['BTC', 'ETH', 'ADA', 'DOT', 'SOL', 'AVAX', 'MATIC', 'LINK'],
-  forex: ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF'],
-  commodities: ['GOLD', 'SILVER', 'OIL', 'WHEAT', 'CORN', 'COPPER']
-};
-
 export function AdvancedAssetSearch({ onSelectAsset, selectedAsset }: AssetSearchProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<EnhancedAssetData[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeCategory, setActiveCategory] = useState('stocks');
-  const [popularAssets, setPopularAssets] = useState<{ [key: string]: EnhancedAssetData[] }>({});
+  const [categoryAssets, setCategoryAssets] = useState<{ [key: string]: EnhancedAssetData[] }>({});
+  const [stockCount, setStockCount] = useState(0);
+  const [isSeeding, setIsSeeding] = useState(false);
   const { favorites, toggleFavorite } = useFavorites();
+  const { toast } = useToast();
 
   useEffect(() => {
-    loadPopularAssets();
+    loadCategoryAssets();
+    checkStockCount();
   }, []);
 
   useEffect(() => {
@@ -42,12 +41,96 @@ export function AdvancedAssetSearch({ onSelectAsset, selectedAsset }: AssetSearc
     }
   }, [searchTerm]);
 
-  const loadPopularAssets = async () => {
+  const checkStockCount = async () => {
+    try {
+      const { count, error } = await supabase
+        .from('assets')
+        .select('*', { count: 'exact', head: true })
+        .eq('category', 'stock');
+
+      if (error) throw error;
+      setStockCount(count || 0);
+    } catch (error) {
+      console.error('Error checking stock count:', error);
+    }
+  };
+
+  const handleSeedStocks = async () => {
+    setIsSeeding(true);
+    try {
+      const result = await seedStockData();
+      if (result.success) {
+        toast({
+          title: "Success!",
+          description: `Added ${result.count} stocks to the database`,
+        });
+        await checkStockCount();
+        await loadCategoryAssets();
+      } else {
+        throw new Error('Failed to seed stock data');
+      }
+    } catch (error) {
+      console.error('Error seeding stocks:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add stocks to database",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSeeding(false);
+    }
+  };
+
+  const loadCategoryAssets = async () => {
     const assets: { [key: string]: EnhancedAssetData[] } = {};
     
-    for (const [category, symbols] of Object.entries(POPULAR_ASSETS)) {
+    // Load stocks from database
+    try {
+      const { data: dbStocks } = await supabase
+        .from('assets')
+        .select('*')
+        .eq('category', 'stock')
+        .eq('is_active', true)
+        .order('name')
+        .limit(20);
+
+      if (dbStocks && dbStocks.length > 0) {
+        assets['stocks'] = [];
+        for (const stock of dbStocks) {
+          try {
+            const data = await fetchEnhancedAssetData(stock.symbol, 'stock');
+            assets['stocks'].push(data);
+          } catch (error) {
+            console.error(`Error loading ${stock.symbol}:`, error);
+          }
+        }
+      } else {
+        // Fallback to popular stocks if database is empty
+        const popularStocks = ['AAPL', 'TSLA', 'MSFT', 'GOOGL', 'AMZN', 'NVDA'];
+        assets['stocks'] = [];
+        for (const symbol of popularStocks) {
+          try {
+            const data = await fetchEnhancedAssetData(symbol, 'stock');
+            assets['stocks'].push(data);
+          } catch (error) {
+            console.error(`Error loading ${symbol}:`, error);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading stocks from database:', error);
+    }
+
+    // Load other asset types
+    const otherCategories = {
+      crypto: ['BTC', 'ETH', 'ADA', 'DOT', 'SOL', 'AVAX'],
+      forex: ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF'],
+      commodities: ['GOLD', 'SILVER', 'OIL', 'WHEAT', 'CORN', 'COPPER']
+    };
+
+    for (const [category, symbols] of Object.entries(otherCategories)) {
       assets[category] = [];
-      for (const symbol of symbols.slice(0, 6)) {
+      for (const symbol of symbols) {
         try {
           const data = await fetchEnhancedAssetData(symbol, category);
           assets[category].push(data);
@@ -57,7 +140,7 @@ export function AdvancedAssetSearch({ onSelectAsset, selectedAsset }: AssetSearc
       }
     }
     
-    setPopularAssets(assets);
+    setCategoryAssets(assets);
   };
 
   const performSearch = async () => {
@@ -70,7 +153,8 @@ export function AdvancedAssetSearch({ onSelectAsset, selectedAsset }: AssetSearc
         .from('assets')
         .select('*')
         .or(`symbol.ilike.%${searchTerm}%,name.ilike.%${searchTerm}%`)
-        .limit(10);
+        .eq('is_active', true)
+        .limit(15);
 
       const results: EnhancedAssetData[] = [];
       
@@ -127,7 +211,7 @@ export function AdvancedAssetSearch({ onSelectAsset, selectedAsset }: AssetSearc
                 {asset.category.toUpperCase()}
               </Badge>
             </div>
-            <span className="text-sm text-muted-foreground">{asset.name}</span>
+            <span className="text-sm text-muted-foreground truncate max-w-[200px]">{asset.name}</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -162,11 +246,34 @@ export function AdvancedAssetSearch({ onSelectAsset, selectedAsset }: AssetSearc
   return (
     <Card className="p-6">
       <div className="space-y-6">
+        {/* Header with Stock Count */}
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold">Asset Search</h2>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline">{stockCount} stocks available</Badge>
+            {stockCount < 50 && (
+              <Button
+                onClick={handleSeedStocks}
+                disabled={isSeeding}
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                {isSeeding ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
+                {isSeeding ? 'Adding...' : 'Add More Stocks'}
+              </Button>
+            )}
+          </div>
+        </div>
+
         {/* Search Bar */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
-            placeholder="Search stocks, crypto, forex, commodities..."
+            placeholder="Search thousands of stocks, crypto, forex, commodities..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -184,7 +291,7 @@ export function AdvancedAssetSearch({ onSelectAsset, selectedAsset }: AssetSearc
                 ))}
               </div>
             ) : searchResults.length > 0 ? (
-              <div className="space-y-2">
+              <div className="space-y-2 max-h-96 overflow-y-auto">
                 {searchResults.map(renderAssetCard)}
               </div>
             ) : (
@@ -195,10 +302,10 @@ export function AdvancedAssetSearch({ onSelectAsset, selectedAsset }: AssetSearc
           </div>
         )}
 
-        {/* Popular Assets */}
+        {/* Category Assets */}
         {!searchTerm && (
           <div className="space-y-4">
-            <h3 className="font-semibold">Popular Assets</h3>
+            <h3 className="font-semibold">Browse by Category</h3>
             <Tabs value={activeCategory} onValueChange={setActiveCategory}>
               <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="stocks">Stocks</TabsTrigger>
@@ -207,10 +314,22 @@ export function AdvancedAssetSearch({ onSelectAsset, selectedAsset }: AssetSearc
                 <TabsTrigger value="commodities">Commodities</TabsTrigger>
               </TabsList>
               
-              {Object.entries(POPULAR_ASSETS).map(([category, symbols]) => (
+              {Object.entries(categoryAssets).map(([category, assets]) => (
                 <TabsContent key={category} value={category} className="space-y-2">
-                  {popularAssets[category]?.length > 0 ? (
-                    popularAssets[category].map(renderAssetCard)
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-muted-foreground">
+                      {category === 'stocks' ? `Showing ${assets.length} of ${stockCount} available stocks` : `Popular ${category}`}
+                    </p>
+                    {category === 'stocks' && assets.length < stockCount && (
+                      <Button variant="outline" size="sm" onClick={loadCategoryAssets}>
+                        Load More
+                      </Button>
+                    )}
+                  </div>
+                  {assets.length > 0 ? (
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {assets.map(renderAssetCard)}
+                    </div>
                   ) : (
                     <div className="animate-pulse space-y-2">
                       {[...Array(6)].map((_, i) => (
@@ -231,8 +350,8 @@ export function AdvancedAssetSearch({ onSelectAsset, selectedAsset }: AssetSearc
               <Star className="h-4 w-4 text-yellow-500" />
               Your Favorites
             </h3>
-            <div className="grid gap-2">
-              {favorites.slice(0, 5).map((symbol) => (
+            <div className="grid gap-2 max-h-64 overflow-y-auto">
+              {favorites.slice(0, 10).map((symbol) => (
                 <div
                   key={symbol}
                   className={`p-3 border rounded-lg cursor-pointer transition-colors hover:bg-accent/50 ${
