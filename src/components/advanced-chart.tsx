@@ -120,7 +120,7 @@ export function AdvancedChart({ symbol }: AdvancedChartProps) {
           <TabsContent value="price" className="space-y-4">
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                {chartType === 'line' && (
+                {chartType === 'line' ? (
                   <LineChart data={data}>
                     <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
                     <XAxis dataKey="date" />
@@ -128,8 +128,7 @@ export function AdvancedChart({ symbol }: AdvancedChartProps) {
                     <Tooltip />
                     <Line type="monotone" dataKey="price" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
                   </LineChart>
-                )}
-                {chartType === 'area' && (
+                ) : chartType === 'area' ? (
                   <AreaChart data={data}>
                     <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
                     <XAxis dataKey="date" />
@@ -137,8 +136,7 @@ export function AdvancedChart({ symbol }: AdvancedChartProps) {
                     <Tooltip />
                     <Area type="monotone" dataKey="price" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.2} />
                   </AreaChart>
-                )}
-                {chartType === 'candlestick' && (
+                ) : (
                   <ComposedChart data={data}>
                     <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
                     <XAxis dataKey="date" />

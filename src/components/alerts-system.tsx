@@ -15,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 interface Alert {
   id: string;
   symbol: string;
-  alert_type: 'PRICE_ABOVE' | 'PRICE_BELOW' | 'PREDICTION_COMPLETE';
+  alert_type: 'price_above' | 'price_below' | 'prediction_complete';
   target_value?: number;
   is_active: boolean;
   created_at: string;
@@ -28,7 +28,7 @@ export function AlertsSystem() {
   const [creating, setCreating] = useState(false);
   const [newAlert, setNewAlert] = useState({
     symbol: '',
-    alert_type: 'PRICE_ABOVE' as const,
+    alert_type: 'price_above' as const,
     target_value: ''
   });
   const { user } = useAuth();
@@ -55,7 +55,7 @@ export function AlertsSystem() {
       const formattedAlerts = (data || []).map((alert: any) => ({
         id: alert.id,
         symbol: alert.symbol,
-        alert_type: alert.alert_type.toUpperCase() as 'PRICE_ABOVE' | 'PRICE_BELOW' | 'PREDICTION_COMPLETE',
+        alert_type: alert.alert_type as 'price_above' | 'price_below' | 'prediction_complete',
         target_value: alert.target_value,
         is_active: alert.is_active,
         created_at: alert.created_at
@@ -82,7 +82,7 @@ export function AlertsSystem() {
       return;
     }
 
-    if ((newAlert.alert_type === 'PRICE_ABOVE' || newAlert.alert_type === 'PRICE_BELOW') && 
+    if ((newAlert.alert_type === 'price_above' || newAlert.alert_type === 'price_below') && 
         (!newAlert.target_value || parseFloat(newAlert.target_value) <= 0)) {
       toast({
         title: "Error",
@@ -98,7 +98,7 @@ export function AlertsSystem() {
       const insertData = {
         user_id: user.id,
         symbol: newAlert.symbol.toUpperCase().trim(),
-        alert_type: newAlert.alert_type.toLowerCase(),
+        alert_type: newAlert.alert_type,
         target_value: newAlert.target_value ? parseFloat(newAlert.target_value) : null,
         is_active: true
       };
@@ -123,7 +123,7 @@ export function AlertsSystem() {
         description: `Alert set for ${newAlert.symbol}`,
       });
 
-      setNewAlert({ symbol: '', alert_type: 'PRICE_ABOVE', target_value: '' });
+      setNewAlert({ symbol: '', alert_type: 'price_above', target_value: '' });
       setDialogOpen(false);
       fetchAlerts();
     } catch (error) {
@@ -222,19 +222,19 @@ export function AlertsSystem() {
                   <Label htmlFor="type">Alert Type</Label>
                   <Select
                     value={newAlert.alert_type}
-                    onValueChange={(value: any) => setNewAlert({...newAlert, alert_type: value})}
+                    onValueChange={(value: 'price_above' | 'price_below' | 'prediction_complete') => setNewAlert({...newAlert, alert_type: value})}
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="PRICE_ABOVE">Price Above</SelectItem>
-                      <SelectItem value="PRICE_BELOW">Price Below</SelectItem>
-                      <SelectItem value="PREDICTION_COMPLETE">Prediction Complete</SelectItem>
+                      <SelectItem value="price_above">Price Above</SelectItem>
+                      <SelectItem value="price_below">Price Below</SelectItem>
+                      <SelectItem value="prediction_complete">Prediction Complete</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                {(newAlert.alert_type === 'PRICE_ABOVE' || newAlert.alert_type === 'PRICE_BELOW') && (
+                {(newAlert.alert_type === 'price_above' || newAlert.alert_type === 'price_below') && (
                   <div>
                     <Label htmlFor="price">Target Price</Label>
                     <Input
@@ -268,9 +268,9 @@ export function AlertsSystem() {
                 <div>
                   <p className="font-semibold">{alert.symbol}</p>
                   <p className="text-sm text-muted-foreground">
-                    {alert.alert_type === 'PRICE_ABOVE' && `Price above $${alert.target_value}`}
-                    {alert.alert_type === 'PRICE_BELOW' && `Price below $${alert.target_value}`}
-                    {alert.alert_type === 'PREDICTION_COMPLETE' && 'Prediction completed'}
+                    {alert.alert_type === 'price_above' && `Price above $${alert.target_value}`}
+                    {alert.alert_type === 'price_below' && `Price below $${alert.target_value}`}
+                    {alert.alert_type === 'prediction_complete' && 'Prediction completed'}
                   </p>
                 </div>
               </div>

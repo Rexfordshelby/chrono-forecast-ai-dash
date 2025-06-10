@@ -12,11 +12,16 @@ import { PortfolioTracker } from '@/components/portfolio-tracker';
 import { Leaderboard } from '@/components/leaderboard';
 import { PremiumAnalytics } from '@/components/premium-analytics';
 import { AlertsSystem } from '@/components/alerts-system';
+import { AdvancedAnalytics } from '@/components/advanced-analytics';
+import { SocialTrading } from '@/components/social-trading';
+import { OptionsTrading } from '@/components/options-trading';
+import { AlgorithmicTrading } from '@/components/algorithmic-trading';
+import { EconomicCalendar } from '@/components/economic-calendar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useNavigate } from 'react-router-dom';
-import { TrendingUp, Brain, User, BarChart3 } from 'lucide-react';
+import { TrendingUp, Brain, User, BarChart3, Calendar, Bot, Users, Target } from 'lucide-react';
 
 const Dashboard = () => {
   const [selectedAsset, setSelectedAsset] = useState('AAPL');
@@ -78,11 +83,13 @@ const Dashboard = () => {
 
           <div className="flex-1 p-6">
             <Tabs defaultValue="trading" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-6">
                 <TabsTrigger value="trading">Trading</TabsTrigger>
-                <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
-                <TabsTrigger value="community">Community</TabsTrigger>
-                <TabsTrigger value="premium">Premium</TabsTrigger>
+                <TabsTrigger value="analytics">Analytics</TabsTrigger>
+                <TabsTrigger value="social">Social</TabsTrigger>
+                <TabsTrigger value="options">Options</TabsTrigger>
+                <TabsTrigger value="algo">Algo Trading</TabsTrigger>
+                <TabsTrigger value="calendar">Calendar</TabsTrigger>
               </TabsList>
               
               <TabsContent value="trading" className="space-y-6">
@@ -106,35 +113,41 @@ const Dashboard = () => {
                   </div>
                 </div>
               </TabsContent>
-              
-              <TabsContent value="portfolio" className="space-y-6">
+
+              <TabsContent value="analytics" className="space-y-6">
                 <div className="grid lg:grid-cols-2 gap-6">
-                  <PortfolioTracker />
-                  <div className="space-y-6">
-                    <AlertsSystem />
-                    <div className="lg:block hidden">
-                      <Leaderboard />
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="community" className="space-y-6">
-                <div className="grid lg:grid-cols-2 gap-6">
-                  <Leaderboard />
-                  <div className="space-y-6">
-                    <PredictionHistory />
-                    <EnhancedStockCard symbol={selectedAsset} />
-                  </div>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="premium" className="space-y-6">
-                <div className="grid lg:grid-cols-2 gap-6">
-                  <PremiumAnalytics />
+                  <AdvancedAnalytics />
                   <div className="space-y-6">
                     <PortfolioTracker />
+                    <PremiumAnalytics />
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="social" className="space-y-6">
+                <div className="grid lg:grid-cols-2 gap-6">
+                  <SocialTrading />
+                  <div className="space-y-6">
+                    <Leaderboard />
+                    <PredictionHistory />
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="options" className="space-y-6">
+                <OptionsTrading />
+              </TabsContent>
+
+              <TabsContent value="algo" className="space-y-6">
+                <AlgorithmicTrading />
+              </TabsContent>
+
+              <TabsContent value="calendar" className="space-y-6">
+                <div className="grid lg:grid-cols-2 gap-6">
+                  <EconomicCalendar />
+                  <div className="space-y-6">
                     <AlertsSystem />
+                    <NewsSection symbol={selectedAsset} />
                   </div>
                 </div>
               </TabsContent>
