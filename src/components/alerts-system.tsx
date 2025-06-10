@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +20,8 @@ interface Alert {
   created_at: string;
 }
 
+type AlertType = 'price_above' | 'price_below' | 'prediction_complete';
+
 export function AlertsSystem() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,7 +29,7 @@ export function AlertsSystem() {
   const [creating, setCreating] = useState(false);
   const [newAlert, setNewAlert] = useState({
     symbol: '',
-    alert_type: 'price_above' as const,
+    alert_type: 'price_above' as AlertType,
     target_value: ''
   });
   const { user } = useAuth();
@@ -55,7 +56,7 @@ export function AlertsSystem() {
       const formattedAlerts = (data || []).map((alert: any) => ({
         id: alert.id,
         symbol: alert.symbol,
-        alert_type: alert.alert_type as 'price_above' | 'price_below' | 'prediction_complete',
+        alert_type: alert.alert_type as AlertType,
         target_value: alert.target_value,
         is_active: alert.is_active,
         created_at: alert.created_at
@@ -222,7 +223,7 @@ export function AlertsSystem() {
                   <Label htmlFor="type">Alert Type</Label>
                   <Select
                     value={newAlert.alert_type}
-                    onValueChange={(value: 'price_above' | 'price_below' | 'prediction_complete') => setNewAlert({...newAlert, alert_type: value})}
+                    onValueChange={(value: AlertType) => setNewAlert({...newAlert, alert_type: value})}
                   >
                     <SelectTrigger>
                       <SelectValue />
