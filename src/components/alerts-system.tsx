@@ -25,6 +25,7 @@ export function AlertsSystem() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [newAlert, setNewAlert] = useState({
     symbol: '',
     alert_type: 'PRICE_ABOVE' as const,
@@ -71,17 +72,51 @@ export function AlertsSystem() {
   const createAlert = async () => {
     if (!user) return;
 
-    try {
-      const { error } = await supabase
-        .from('user_alerts')
-        .insert({
-          user_id: user.id,
-          symbol: newAlert.symbol.toUpperCase(),
-          alert_type: newAlert.alert_type.toLowerCase(),
-          target_value: newAlert.target_value ? parseFloat(newAlert.target_value) : null
-        });
+    // Validation
+    if (!newAlert.symbol.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a stock symbol",
+        variant: "destructive",
+      });
+      return;
+    }
 
-      if (error) throw error;
+    if ((newAlert.alert_type === 'PRICE_ABOVE' || newAlert.alert_type === 'PRICE_BELOW') && 
+        (!newAlert.target_value || parseFloat(newAlert.target_value) <= 0)) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid target price",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setCreating(true);
+
+    try {
+      const insertData = {
+        user_id: user.id,
+        symbol: newAlert.symbol.toUpperCase().trim(),
+        alert_type: newAlert.alert_type.toLowerCase(),
+        target_value: newAlert.target_value ? parseFloat(newAlert.target_value) : null,
+        is_active: true
+      };
+
+      console.log('Inserting alert data:', insertData);
+
+      const { data, error } = await supabase
+        .from('user_alerts')
+        .insert(insertData)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+
+      console.log('Alert created successfully:', data);
 
       toast({
         title: "Alert created",
@@ -95,9 +130,11 @@ export function AlertsSystem() {
       console.error('Error creating alert:', error);
       toast({
         title: "Error",
-        description: "Failed to create alert",
+        description: error instanceof Error ? error.message : "Failed to create alert",
         variant: "destructive",
       });
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -204,14 +241,19 @@ export function AlertsSystem() {
                       id="price"
                       type="number"
                       step="0.01"
+                      min="0"
                       value={newAlert.target_value}
                       onChange={(e) => setNewAlert({...newAlert, target_value: e.target.value})}
                       placeholder="150.00"
                     />
                   </div>
                 )}
-                <Button onClick={createAlert} className="w-full">
-                  Create Alert
+                <Button 
+                  onClick={createAlert} 
+                  className="w-full"
+                  disabled={creating}
+                >
+                  {creating ? 'Creating...' : 'Create Alert'}
                 </Button>
               </div>
             </DialogContent>
