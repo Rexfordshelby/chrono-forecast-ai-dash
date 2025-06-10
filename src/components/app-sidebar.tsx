@@ -46,6 +46,11 @@ export function AppSidebar({ favorites, onSelectStock, selectedStock }: AppSideb
       path: "/profile",
     },
     {
+      title: "Features",
+      icon: TrendingUp,
+      path: "/features",
+    },
+    {
       title: "History",
       icon: History,
       path: "/history",

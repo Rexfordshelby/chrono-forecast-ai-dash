@@ -1,5 +1,7 @@
-
 import { supabase } from '@/integrations/supabase/client';
+import { fetchPolygonAggregates, fetchPolygonTickerDetails } from './polygon-api';
+import { fetchStockNews, fetchCryptoNews, fetchMarketNews } from './newsdata-api';
+import { fetchPolygonAssets, getAllAssets, searchAssets } from './comprehensive-assets';
 
 // API configuration with multiple providers for comprehensive coverage
 const API_KEYS = {
@@ -63,7 +65,7 @@ export interface NewsArticle {
   imageUrl?: string;
 }
 
-// Enhanced asset data fetching with multiple sources
+// Enhanced asset data fetching with Polygon.io integration
 export async function fetchEnhancedAssetData(symbol: string, category?: string): Promise<EnhancedAssetData> {
   try {
     // First, try to get cached data from our database
@@ -72,7 +74,52 @@ export async function fetchEnhancedAssetData(symbol: string, category?: string):
       return cachedData;
     }
 
-    // Determine category if not provided
+    // Try Polygon.io first for real-time data
+    const polygonData = await fetchPolygonTickerDetails(symbol);
+    if (polygonData && polygonData.results) {
+      const ticker = polygonData.results;
+      
+      // Get price data from Polygon aggregates
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const today = new Date().toISOString().split('T')[0];
+      const aggregates = await fetchPolygonAggregates(symbol, 1, 'day', yesterday, today);
+      
+      if (aggregates && aggregates.results && aggregates.results.length > 0) {
+        const latestBar = aggregates.results[aggregates.results.length - 1];
+        
+        const assetData: EnhancedAssetData = {
+          symbol: ticker.ticker,
+          name: ticker.name,
+          category: determineAssetCategoryFromPolygon(ticker.type),
+          price: latestBar.c,
+          change: latestBar.c - latestBar.o,
+          changePercent: ((latestBar.c - latestBar.o) / latestBar.o) * 100,
+          volume: latestBar.v,
+          openPrice: latestBar.o,
+          high24h: latestBar.h,
+          low24h: latestBar.l,
+          currency: ticker.currency_name || 'USD',
+          exchange: ticker.primary_exchange,
+          sector: ticker.sic_description,
+          country: ticker.locale === 'us' ? 'USA' : ticker.locale?.toUpperCase(),
+          description: ticker.description,
+          logoUrl: ticker.branding?.logo_url,
+          websiteUrl: ticker.homepage_url,
+          lastUpdated: new Date().toISOString(),
+          marketCap: ticker.market_cap,
+          additionalMetrics: {
+            market_cap_rank: ticker.market_cap ? 1 : undefined,
+            volatility: calculateVolatility(aggregates.results)
+          }
+        };
+
+        // Cache the data
+        await cacheAssetData(assetData);
+        return assetData;
+      }
+    }
+
+    // Fallback to existing API logic
     const assetCategory = category || await determineAssetCategory(symbol);
     
     let assetData: EnhancedAssetData;
@@ -95,13 +142,86 @@ export async function fetchEnhancedAssetData(symbol: string, category?: string):
         break;
     }
 
-    // Cache the data
     await cacheAssetData(assetData);
-    
     return assetData;
   } catch (error) {
     console.error('Error fetching enhanced asset data:', error);
     return generateMockAssetData(symbol, category || 'stock');
+  }
+}
+
+// Enhanced news fetching with Newsdata.io
+export async function fetchEnhancedNews(symbol: string, category?: string): Promise<NewsArticle[]> {
+  try {
+    let articles: NewsArticle[] = [];
+    
+    // Fetch from Newsdata.io based on category
+    if (category === 'crypto') {
+      const cryptoNews = await fetchCryptoNews();
+      articles = cryptoNews.map(article => ({
+        title: article.title,
+        summary: article.description || '',
+        publishedAt: new Date(article.pubDate).toLocaleDateString(),
+        url: article.link,
+        sentiment: calculateSentiment(article.title + ' ' + (article.description || '')),
+        source: article.source_id,
+        imageUrl: article.image_url
+      }));
+    } else if (symbol) {
+      const stockNews = await fetchStockNews(symbol);
+      articles = stockNews.map(article => ({
+        title: article.title,
+        summary: article.description || '',
+        publishedAt: new Date(article.pubDate).toLocaleDateString(),
+        url: article.link,
+        sentiment: calculateSentiment(article.title + ' ' + (article.description || '')),
+        source: article.source_id,
+        imageUrl: article.image_url
+      }));
+    }
+
+    // If no specific news found, get general market news
+    if (articles.length === 0) {
+      const marketNews = await fetchMarketNews();
+      articles = marketNews.slice(0, 10).map(article => ({
+        title: article.title,
+        summary: article.description || '',
+        publishedAt: new Date(article.pubDate).toLocaleDateString(),
+        url: article.link,
+        sentiment: calculateSentiment(article.title + ' ' + (article.description || '')),
+        source: article.source_id,
+        imageUrl: article.image_url
+      }));
+    }
+    
+    return articles.length > 0 ? articles : generateMockNews(symbol);
+  } catch (error) {
+    console.error('Error fetching enhanced news:', error);
+    return generateMockNews(symbol);
+  }
+}
+
+// Enhanced asset search with comprehensive database
+export async function searchAssetsComprehensive(query: string): Promise<EnhancedAssetData[]> {
+  try {
+    // Search in our comprehensive asset database
+    const searchResults = searchAssets(query);
+    
+    // Convert to EnhancedAssetData format
+    const enhancedResults = await Promise.all(
+      searchResults.slice(0, 20).map(async asset => {
+        try {
+          return await fetchEnhancedAssetData(asset.symbol, asset.type);
+        } catch {
+          return generateMockAssetData(asset.symbol, asset.type);
+        }
+      })
+    );
+    
+    return enhancedResults;
+  } catch (error) {
+    console.error('Error searching assets:', error);
+    return [];
   }
 }
 
@@ -264,40 +384,6 @@ export async function fetchChartData(symbol: string, interval: '1m' | '5m' | '15
   } catch (error) {
     console.error('Error fetching chart data:', error);
     return generateMockChartData();
-  }
-}
-
-// Enhanced news fetching with multiple sources
-export async function fetchEnhancedNews(symbol: string, category?: string): Promise<NewsArticle[]> {
-  try {
-    const articles: NewsArticle[] = [];
-    
-    // Fetch from GNews
-    const gnewsResponse = await fetch(
-      `https://gnews.io/api/v4/search?q=${symbol}&token=${API_KEYS.GNEWS}&lang=en&country=us&max=5`
-    );
-    
-    if (gnewsResponse.ok) {
-      const gnewsData = await gnewsResponse.json();
-      const gnewsArticles = gnewsData.articles?.map((article: any) => ({
-        title: article.title,
-        summary: article.description,
-        publishedAt: new Date(article.publishedAt).toLocaleDateString(),
-        url: article.url,
-        sentiment: Math.random() * 2 - 1, // Would use sentiment analysis API
-        source: article.source.name,
-        imageUrl: article.image
-      })) || [];
-      
-      articles.push(...gnewsArticles);
-    }
-    
-    // Add more news sources here
-    
-    return articles.length > 0 ? articles : generateMockNews(symbol);
-  } catch (error) {
-    console.error('Error fetching enhanced news:', error);
-    return generateMockNews(symbol);
   }
 }
 
@@ -495,4 +581,44 @@ function getCompanyName(symbol: string): string {
     'GOLD': 'Gold Futures', 'SILVER': 'Silver Futures', 'OIL': 'Crude Oil Futures'
   };
   return names[symbol] || `${symbol} Corporation`;
+}
+
+function determineAssetCategoryFromPolygon(type: string): 'stock' | 'crypto' | 'forex' | 'commodity' | 'etf' | 'index' {
+  switch (type?.toLowerCase()) {
+    case 'cs': return 'stock';
+    case 'etf': return 'etf';
+    case 'index': return 'index';
+    case 'fx': return 'forex';
+    case 'crypto': return 'crypto';
+    default: return 'stock';
+  }
+}
+
+function calculateVolatility(bars: any[]): number {
+  if (bars.length < 2) return 0;
+  
+  const returns = bars.slice(1).map((bar, i) => 
+    Math.log(bar.c / bars[i].c)
+  );
+  
+  const mean = returns.reduce((sum, ret) => sum + ret, 0) / returns.length;
+  const variance = returns.reduce((sum, ret) => sum + Math.pow(ret - mean, 2), 0) / returns.length;
+  
+  return Math.sqrt(variance * 252) * 100; // Annualized volatility
+}
+
+function calculateSentiment(text: string): number {
+  // Simple sentiment analysis based on keywords
+  const positiveWords = ['gain', 'rise', 'bull', 'positive', 'growth', 'increase', 'up', 'strong', 'buy'];
+  const negativeWords = ['fall', 'drop', 'bear', 'negative', 'decline', 'decrease', 'down', 'weak', 'sell'];
+  
+  const words = text.toLowerCase().split(/\s+/);
+  let score = 0;
+  
+  words.forEach(word => {
+    if (positiveWords.some(pw => word.includes(pw))) score += 1;
+    if (negativeWords.some(nw => word.includes(nw))) score -= 1;
+  });
+  
+  return Math.max(-1, Math.min(1, score / words.length * 10));
 }

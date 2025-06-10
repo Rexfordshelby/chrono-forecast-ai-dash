@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,6 +11,7 @@ import Analysis from "./pages/Analysis";
 import Profile from "./pages/Profile";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import Features from "./pages/Features";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +44,7 @@ const App = () => (
                 <Profile />
               </ProtectedRoute>
             } />
+            <Route path="/features" element={<Features />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
