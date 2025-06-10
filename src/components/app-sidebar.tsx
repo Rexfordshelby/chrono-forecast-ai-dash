@@ -1,5 +1,6 @@
 
-import { TrendingUp, Star, History, Settings, BarChart3 } from 'lucide-react';
+import { TrendingUp, Star, History, Settings, BarChart3, Brain, User, LineChart } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Sidebar,
   SidebarContent,
@@ -20,21 +21,39 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ favorites, onSelectStock, selectedStock }: AppSidebarProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const menuItems = [
     {
       title: "Dashboard",
       icon: BarChart3,
-      action: () => {},
+      path: "/",
+    },
+    {
+      title: "Markets",
+      icon: LineChart,
+      path: "/markets",
+    },
+    {
+      title: "Analysis",
+      icon: Brain,
+      path: "/analysis",
+    },
+    {
+      title: "Profile",
+      icon: User,
+      path: "/profile",
     },
     {
       title: "History",
       icon: History,
-      action: () => {},
+      path: "/history",
     },
     {
       title: "Settings",
       icon: Settings,
-      action: () => {},
+      path: "/settings",
     },
   ];
 
@@ -57,7 +76,10 @@ export function AppSidebar({ favorites, onSelectStock, selectedStock }: AppSideb
             <SidebarMenu>
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton onClick={item.action}>
+                  <SidebarMenuButton 
+                    onClick={() => navigate(item.path)}
+                    isActive={location.pathname === item.path}
+                  >
                     <item.icon className="h-4 w-4" />
                     <span>{item.title}</span>
                   </SidebarMenuButton>
