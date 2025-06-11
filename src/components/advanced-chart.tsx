@@ -162,8 +162,7 @@ export function AdvancedChart({ symbol }: AdvancedChartProps) {
         <div className="flex gap-2">
           {[
             { key: 'line', label: 'Line', icon: Activity },
-            { key: 'area', label: 'Area', icon: BarChart3 },
-            { key: 'candlestick', label: 'Candlestick', icon: Target }
+            { key: 'area', label: 'Area', icon: BarChart3 }
           ].map(({ key, label, icon: Icon }) => (
             <Button
               key={key}
@@ -199,7 +198,7 @@ export function AdvancedChart({ symbol }: AdvancedChartProps) {
                     <Tooltip formatter={(value) => [`$${Number(value).toFixed(2)}`, 'Price']} />
                     <Line type="monotone" dataKey="price" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
                   </LineChart>
-                ) : chartType === 'area' ? (
+                ) : (
                   <AreaChart data={data}>
                     <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
                     <XAxis dataKey="date" />
@@ -207,20 +206,6 @@ export function AdvancedChart({ symbol }: AdvancedChartProps) {
                     <Tooltip formatter={(value) => [`$${Number(value).toFixed(2)}`, 'Price']} />
                     <Area type="monotone" dataKey="price" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.2} />
                   </AreaChart>
-                ) : (
-                  <ComposedChart data={data}>
-                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                    <XAxis dataKey="date" />
-                    <YAxis domain={['dataMin - 5', 'dataMax + 5']} />
-                    <Tooltip formatter={(value, name) => {
-                      if (name === 'high' || name === 'low' || name === 'open' || name === 'close') {
-                        return [`$${Number(value).toFixed(2)}`, name.toUpperCase()];
-                      }
-                      return [value, name];
-                    }} />
-                    <Bar dataKey="high" fill="hsl(var(--muted))" />
-                    <Line type="monotone" dataKey="close" stroke="hsl(var(--destructive))" strokeWidth={2} dot={false} />
-                  </ComposedChart>
                 )}
               </ResponsiveContainer>
             </div>
@@ -232,7 +217,8 @@ export function AdvancedChart({ symbol }: AdvancedChartProps) {
                 <ComposedChart data={data}>
                   <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
                   <XAxis dataKey="date" />
-                  <YAxis />
+                  <YAxis yAxisId="left" />
+                  <YAxis yAxisId="right" orientation="right" />
                   <Tooltip formatter={(value, name) => {
                     if (name === 'volume') {
                       return [(Number(value) / 1000000).toFixed(1) + 'M', 'Volume'];
@@ -242,7 +228,7 @@ export function AdvancedChart({ symbol }: AdvancedChartProps) {
                     }
                     return [value, name];
                   }} />
-                  <Bar dataKey="volume" fill="hsl(var(--muted))" />
+                  <Bar dataKey="volume" fill="hsl(var(--muted))" yAxisId="left" />
                   <Line type="monotone" dataKey="price" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} yAxisId="right" />
                 </ComposedChart>
               </ResponsiveContainer>
@@ -304,7 +290,7 @@ export function AdvancedChart({ symbol }: AdvancedChartProps) {
               
               <div className="space-y-4">
                 <div>
-                  <h4 className="font-semibold mb-2">AI Analysis (Simple Explanation)</h4>
+                  <h4 className="font-semibold mb-2">AI Analysis</h4>
                   <p className="text-sm leading-relaxed">{prediction.reasoning}</p>
                 </div>
                 
@@ -320,9 +306,9 @@ export function AdvancedChart({ symbol }: AdvancedChartProps) {
                 </div>
                 
                 <div className="text-xs text-muted-foreground bg-background p-3 rounded border">
-                  <strong>Beginner Tip:</strong> This prediction is based on current price movement, volume, and technical indicators. 
-                  {prediction.trend === 'BULLISH' ? ' A bullish signal suggests the price might go up.' : ' A bearish signal suggests the price might go down.'} 
-                  Always do your own research and never invest more than you can afford to lose.
+                  <strong>Note:</strong> This prediction is based on current price movement and technical indicators. 
+                  {prediction.trend === 'BULLISH' ? ' A bullish signal suggests potential upward movement.' : ' A bearish signal suggests potential downward movement.'} 
+                  Always do your own research.
                 </div>
               </div>
             </div>

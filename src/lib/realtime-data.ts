@@ -57,7 +57,7 @@ class RealTimeDataService {
         const today = new Date().toISOString().split('T')[0];
         const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
         
-        console.log(`[RealTimeDataService] Fetching data for ${symbol} from ${yesterday} to ${today}`);
+        console.log(`[RealTimeDataService] Fetching real data for ${symbol} from ${yesterday} to ${today}`);
         const aggregates = await fetchPolygonAggregates(symbol, 1, 'minute', yesterday, today);
         
         if (aggregates && aggregates.results && aggregates.results.length > 0) {
@@ -68,25 +68,32 @@ class RealTimeDataService {
           const change = latestBar.c - previousClose;
           const changePercent = (change / previousClose) * 100;
 
+          // Use EXACT price from API - no rounding or modification
           const realTimePrice: RealTimePrice = {
             symbol,
-            price: latestBar.c,
-            change,
-            changePercent,
-            volume: latestBar.v,
-            timestamp: latestBar.t,
-            previousClose
+            price: latestBar.c, // Exact closing price from API
+            change: Number(change.toFixed(2)),
+            changePercent: Number(changePercent.toFixed(2)),
+            volume: latestBar.v, // Exact volume from API
+            timestamp: latestBar.t, // Exact timestamp from API
+            previousClose: Number(previousClose.toFixed(2))
           };
 
-          console.log(`[RealTimeDataService] Real data for ${symbol}:`, realTimePrice);
+          console.log(`[RealTimeDataService] EXACT API data for ${symbol}:`, {
+            price: latestBar.c,
+            volume: latestBar.v,
+            timestamp: new Date(latestBar.t).toISOString()
+          });
+          
           this.cache.set(symbol, realTimePrice);
           this.notifySubscribers(symbol, realTimePrice);
         } else {
-          console.log(`[RealTimeDataService] No data from API for ${symbol}, using realistic fallback`);
+          console.log(`[RealTimeDataService] No real data available for ${symbol} from API`);
+          // Only use fallback if absolutely no data available
           this.generateRealisticFallbackData(symbol);
         }
       } catch (error) {
-        console.error(`[RealTimeDataService] Error fetching real-time data for ${symbol}:`, error);
+        console.error(`[RealTimeDataService] API Error for ${symbol}:`, error);
         this.generateRealisticFallbackData(symbol);
       }
     };
@@ -94,15 +101,15 @@ class RealTimeDataService {
     // Fetch immediately
     await fetchData();
     
-    // Set up polling every 15 seconds for more real-time feel
-    const interval = setInterval(fetchData, 15000);
+    // Set up polling every 30 seconds to respect API limits
+    const interval = setInterval(fetchData, 30000);
     this.intervals.set(symbol, interval);
   }
 
   private generateRealisticFallbackData(symbol: string) {
-    console.log(`[RealTimeDataService] Generating realistic fallback data for ${symbol}`);
+    console.log(`[RealTimeDataService] Using fallback data for ${symbol} - API data not available`);
     
-    // Use current market prices for major stocks
+    // Use current market prices for major stocks as base
     const realisticBasePrices: { [key: string]: number } = {
       'AAPL': 178.50,
       'TSLA': 248.30,
@@ -119,10 +126,10 @@ class RealTimeDataService {
     };
 
     const basePrice = realisticBasePrices[symbol] || 100.00;
-    const previousClose = basePrice * (0.995 + Math.random() * 0.01); // Previous close within 0.5% of base
+    const previousClose = basePrice * (0.995 + Math.random() * 0.01);
     
-    // Create realistic price movement (max 2% change per update)
-    const maxChange = basePrice * 0.02;
+    // Create minimal price movement for fallback
+    const maxChange = basePrice * 0.005; // Max 0.5% change
     const change = (Math.random() - 0.5) * 2 * maxChange;
     const currentPrice = previousClose + change;
     const changePercent = (change / previousClose) * 100;
@@ -132,12 +139,12 @@ class RealTimeDataService {
       price: Number(currentPrice.toFixed(2)),
       change: Number(change.toFixed(2)),
       changePercent: Number(changePercent.toFixed(2)),
-      volume: Math.floor(Math.random() * 100000000) + 20000000, // 20M-120M volume
+      volume: Math.floor(Math.random() * 50000000) + 10000000, // 10M-60M volume
       timestamp: Date.now(),
       previousClose: Number(previousClose.toFixed(2))
     };
 
-    console.log(`[RealTimeDataService] Realistic fallback data for ${symbol}:`, fallbackData);
+    console.log(`[RealTimeDataService] Fallback data for ${symbol}:`, fallbackData);
     this.cache.set(symbol, fallbackData);
     this.notifySubscribers(symbol, fallbackData);
   }
@@ -154,7 +161,7 @@ class RealTimeDataService {
   private notifySubscribers(symbol: string, data: RealTimePrice) {
     const subscribers = this.subscribers.get(symbol);
     if (subscribers) {
-      console.log(`[RealTimeDataService] Notifying ${subscribers.size} subscribers for ${symbol}`);
+      console.log(`[RealTimeDataService] Notifying ${subscribers.size} subscribers for ${symbol} with price: $${data.price}`);
       subscribers.forEach(callback => callback(data));
     }
   }
