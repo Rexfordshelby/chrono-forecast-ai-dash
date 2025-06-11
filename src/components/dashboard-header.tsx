@@ -2,11 +2,17 @@
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { LanguageSelector } from '@/components/language-selector';
-import { useAuth } from '@/hooks/useAuth';
 import { LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export function DashboardHeader() {
-  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    // Clear any stored auth data
+    localStorage.removeItem('auth');
+    navigate('/auth');
+  };
 
   return (
     <header className="flex h-16 shrink-0 items-center justify-between gap-2 px-4 border-b">
@@ -18,7 +24,7 @@ export function DashboardHeader() {
       
       <div className="flex items-center gap-4">
         <LanguageSelector />
-        <Button variant="ghost" size="sm" onClick={logout}>
+        <Button variant="ghost" size="sm" onClick={handleLogout}>
           <LogOut className="h-4 w-4 mr-2" />
           Logout
         </Button>

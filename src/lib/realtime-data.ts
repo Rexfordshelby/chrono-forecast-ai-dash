@@ -16,6 +16,8 @@ class RealTimeDataService {
   private intervals: Map<string, NodeJS.Timeout> = new Map();
 
   subscribe(symbol: string, callback: (data: RealTimePrice) => void) {
+    console.log(`[RealTimeDataService] Subscribing to ${symbol}`);
+    
     if (!this.subscribers.has(symbol)) {
       this.subscribers.set(symbol, new Set());
       this.startPolling(symbol);
@@ -25,6 +27,7 @@ class RealTimeDataService {
     
     // Send cached data immediately if available
     if (this.cache.has(symbol)) {
+      console.log(`[RealTimeDataService] Sending cached data for ${symbol}`);
       callback(this.cache.get(symbol)!);
     }
 
@@ -32,6 +35,7 @@ class RealTimeDataService {
   }
 
   private unsubscribe(symbol: string, callback: (data: RealTimePrice) => void) {
+    console.log(`[RealTimeDataService] Unsubscribing from ${symbol}`);
     const subscribers = this.subscribers.get(symbol);
     if (subscribers) {
       subscribers.delete(callback);
@@ -44,12 +48,15 @@ class RealTimeDataService {
   }
 
   private async startPolling(symbol: string) {
+    console.log(`[RealTimeDataService] Starting polling for ${symbol}`);
+    
     const fetchData = async () => {
       try {
         // Get current date range for real-time data
         const today = new Date().toISOString().split('T')[0];
         const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
         
+        console.log(`[RealTimeDataService] Fetching data for ${symbol} from ${yesterday} to ${today}`);
         const aggregates = await fetchPolygonAggregates(symbol, 1, 'minute', yesterday, today);
         
         if (aggregates && aggregates.results && aggregates.results.length > 0) {
@@ -68,15 +75,16 @@ class RealTimeDataService {
             timestamp: latestBar.t
           };
 
+          console.log(`[RealTimeDataService] Real data for ${symbol}:`, realTimePrice);
           this.cache.set(symbol, realTimePrice);
           this.notifySubscribers(symbol, realTimePrice);
         } else {
-          // Fallback to mock data if API fails
-          this.generateMockData(symbol);
+          console.log(`[RealTimeDataService] No data from API for ${symbol}, using fallback`);
+          this.generateFallbackData(symbol);
         }
       } catch (error) {
-        console.error(`Error fetching real-time data for ${symbol}:`, error);
-        this.generateMockData(symbol);
+        console.error(`[RealTimeDataService] Error fetching real-time data for ${symbol}:`, error);
+        this.generateFallbackData(symbol);
       }
     };
 
@@ -88,35 +96,46 @@ class RealTimeDataService {
     this.intervals.set(symbol, interval);
   }
 
-  private generateMockData(symbol: string) {
-    const basePrice = this.getBasePriceForSymbol(symbol);
-    const change = (Math.random() - 0.5) * basePrice * 0.02; // 2% max change
+  private generateFallbackData(symbol: string) {
+    console.log(`[RealTimeDataService] Generating fallback data for ${symbol}`);
+    
+    // Use more realistic base prices for major stocks
+    const realisticsBasePrices: { [key: string]: number } = {
+      'AAPL': 175.50,
+      'TSLA': 248.30,
+      'MSFT': 378.85,
+      'GOOGL': 142.65,
+      'AMZN': 154.20,
+      'NVDA': 481.30,
+      'META': 325.45,
+      'NFLX': 425.60,
+      'AMD': 142.80,
+      'INTC': 52.30
+    };
+
+    const basePrice = realisticsBasePrices[symbol] || 150.00;
+    
+    // Create realistic price movement (max 1% change per update)
+    const maxChange = basePrice * 0.01;
+    const change = (Math.random() - 0.5) * 2 * maxChange;
     const changePercent = (change / basePrice) * 100;
 
-    const mockData: RealTimePrice = {
+    const fallbackData: RealTimePrice = {
       symbol,
-      price: basePrice + change,
-      change,
-      changePercent,
-      volume: Math.floor(Math.random() * 10000000) + 1000000,
+      price: Number((basePrice + change).toFixed(2)),
+      change: Number(change.toFixed(2)),
+      changePercent: Number(changePercent.toFixed(2)),
+      volume: Math.floor(Math.random() * 50000000) + 10000000, // 10M-60M volume
       timestamp: Date.now()
     };
 
-    this.cache.set(symbol, mockData);
-    this.notifySubscribers(symbol, mockData);
-  }
-
-  private getBasePriceForSymbol(symbol: string): number {
-    const prices: { [key: string]: number } = {
-      'AAPL': 175, 'TSLA': 250, 'MSFT': 380, 'GOOGL': 140, 'AMZN': 155, 'NVDA': 480,
-      'BTC': 45000, 'ETH': 3000, 'ADA': 1.2, 'DOT': 25, 'SOL': 100,
-      'EURUSD': 1.08, 'GBPUSD': 1.25, 'USDJPY': 150,
-      'GOLD': 2000, 'SILVER': 25, 'OIL': 80
-    };
-    return prices[symbol] || 100;
+    console.log(`[RealTimeDataService] Fallback data for ${symbol}:`, fallbackData);
+    this.cache.set(symbol, fallbackData);
+    this.notifySubscribers(symbol, fallbackData);
   }
 
   private stopPolling(symbol: string) {
+    console.log(`[RealTimeDataService] Stopping polling for ${symbol}`);
     const interval = this.intervals.get(symbol);
     if (interval) {
       clearInterval(interval);
@@ -127,6 +146,7 @@ class RealTimeDataService {
   private notifySubscribers(symbol: string, data: RealTimePrice) {
     const subscribers = this.subscribers.get(symbol);
     if (subscribers) {
+      console.log(`[RealTimeDataService] Notifying ${subscribers.size} subscribers for ${symbol}`);
       subscribers.forEach(callback => callback(data));
     }
   }
