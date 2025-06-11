@@ -7,7 +7,7 @@ import { useFavorites } from '@/hooks/useFavorites';
 import { useRealTimeStock } from '@/hooks/useRealTimeStock';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { PredictionVoting } from './prediction-voting';
-import { TradingSignals } from './trading-signals';
+import { SimpleTradingSignals } from './simple-trading-signals';
 
 interface EnhancedStockCardProps {
   symbol: string;
@@ -23,17 +23,12 @@ export function EnhancedStockCard({ symbol }: EnhancedStockCardProps) {
       <div className="space-y-6">
         <Card className="p-6">
           <div className="space-y-4">
-            <div className="h-8 bg-muted rounded animate-pulse"></div>
-            <div className="h-24 bg-muted rounded animate-pulse"></div>
-            <div className="h-16 bg-muted rounded animate-pulse"></div>
             <div className="text-center text-muted-foreground">
-              <Activity className="h-6 w-6 mx-auto mb-2 animate-spin" />
-              <p>{t('common.loading')}</p>
+              <Activity className="h-8 w-8 mx-auto mb-2 animate-spin" />
+              <p>Loading {symbol} data...</p>
             </div>
+            <div className="h-24 bg-muted rounded animate-pulse"></div>
           </div>
-        </Card>
-        <Card className="p-6">
-          <div className="h-32 bg-muted rounded animate-pulse"></div>
         </Card>
       </div>
     );
@@ -43,47 +38,57 @@ export function EnhancedStockCard({ symbol }: EnhancedStockCardProps) {
     return (
       <Card className="p-6">
         <div className="text-center text-muted-foreground">
-          <p>{t('common.error')}: Failed to load stock data</p>
+          <p>Failed to load data for {symbol}</p>
           <Button variant="outline" className="mt-2">
             <RefreshCw className="h-4 w-4 mr-2" />
-            {t('common.retry')}
+            Retry
           </Button>
         </div>
       </Card>
     );
   }
 
-  const priceColor = stockData.change >= 0 ? 'text-profit' : 'text-loss';
-  const isRealTime = Date.now() - stockData.timestamp < 60000; // Less than 1 minute old
+  const priceColor = stockData.change >= 0 ? 'text-green-600' : 'text-red-600';
+  const isLive = Date.now() - stockData.timestamp < 60000; // Less than 1 minute old
 
   return (
     <div className="space-y-6">
-      <Card className="p-6 card-glow">
+      {/* Main Stock Info */}
+      <Card className="p-6">
         <div className="space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-2xl font-bold font-mono">{stockData.symbol}</h3>
-                <Badge variant={isRealTime ? "default" : "secondary"} className="text-xs">
-                  {isRealTime ? "LIVE" : "DELAYED"}
+                <Badge variant={isLive ? "default" : "secondary"} className="text-xs">
+                  {isLive ? "LIVE" : "DELAYED"}
                 </Badge>
               </div>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-3xl font-bold">${stockData.price.toFixed(2)}</span>
+              
+              {/* Price Display */}
+              <div className="flex items-center gap-2 mt-2">
+                <span className="text-4xl font-bold">${stockData.price.toFixed(2)}</span>
                 <div className={`flex items-center gap-1 ${priceColor}`}>
                   {stockData.change >= 0 ? (
-                    <TrendingUp className="h-5 w-5" />
+                    <TrendingUp className="h-6 w-6" />
                   ) : (
-                    <TrendingDown className="h-5 w-5" />
+                    <TrendingDown className="h-6 w-6" />
                   )}
-                  <span className="font-semibold">
-                    ${Math.abs(stockData.change).toFixed(2)} ({stockData.changePercent.toFixed(2)}%)
-                  </span>
+                  <div className="flex flex-col">
+                    <span className="font-semibold text-lg">
+                      {stockData.change >= 0 ? '+' : ''}${stockData.change.toFixed(2)}
+                    </span>
+                    <span className="font-semibold text-lg">
+                      ({stockData.changePercent.toFixed(2)}%)
+                    </span>
+                  </div>
                 </div>
               </div>
-              <div className="text-sm text-muted-foreground mt-1">
-                Last updated: {new Date(stockData.timestamp).toLocaleTimeString()}
+              
+              <div className="text-sm text-muted-foreground mt-2">
+                Previous Close: ${stockData.previousClose?.toFixed(2) || 'N/A'} • 
+                Last Updated: {new Date(stockData.timestamp).toLocaleTimeString()}
               </div>
             </div>
             
@@ -96,35 +101,35 @@ export function EnhancedStockCard({ symbol }: EnhancedStockCardProps) {
             </Button>
           </div>
 
-          {/* Community Voting */}
-          <PredictionVoting symbol={symbol} />
-
           {/* Market Data */}
           <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-            <div>
-              <p className="text-sm text-muted-foreground">{t('stock.volume')}</p>
-              <p className="font-semibold">{stockData.volume.toLocaleString()}</p>
+            <div className="text-center p-3 bg-muted rounded-lg">
+              <p className="text-sm text-muted-foreground">Volume</p>
+              <p className="font-bold text-lg">{(stockData.volume / 1000000).toFixed(1)}M</p>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">24h Range</p>
-              <p className="font-semibold text-sm">
-                ${(stockData.price * 0.95).toFixed(2)} - ${(stockData.price * 1.05).toFixed(2)}
+            <div className="text-center p-3 bg-muted rounded-lg">
+              <p className="text-sm text-muted-foreground">24h High/Low</p>
+              <p className="font-bold text-sm">
+                ${(stockData.price * 1.02).toFixed(2)} / ${(stockData.price * 0.98).toFixed(2)}
               </p>
             </div>
           </div>
 
-          {/* Real-time Indicator */}
-          <div className="flex items-center justify-center gap-2 p-2 bg-muted/50 rounded-lg">
-            <div className={`w-2 h-2 rounded-full ${isRealTime ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`}></div>
-            <span className="text-xs text-muted-foreground">
-              {isRealTime ? 'Real-time data' : 'Delayed data'}
+          {/* Live Indicator */}
+          <div className="flex items-center justify-center gap-2 p-3 bg-muted/50 rounded-lg">
+            <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`}></div>
+            <span className="text-sm font-medium">
+              {isLive ? 'Real-time data stream active' : 'Delayed market data'}
             </span>
           </div>
         </div>
       </Card>
 
+      {/* Community Voting */}
+      <PredictionVoting symbol={symbol} />
+
       {/* Trading Signals */}
-      <TradingSignals symbol={symbol} />
+      <SimpleTradingSignals symbol={symbol} />
     </div>
   );
 }
