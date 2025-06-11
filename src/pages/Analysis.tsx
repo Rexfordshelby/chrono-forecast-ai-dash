@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Search, TrendingUp, TrendingDown, Brain, Target, LineChart, BarChart3 } from 'lucide-react';
 import { AdvancedChart } from '@/components/advanced-chart';
+import { TradingSignals } from '@/components/trading-signals';
 
 const Analysis = () => {
   const navigate = useNavigate();
@@ -79,13 +80,18 @@ const Analysis = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="predictions" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+      <Tabs defaultValue="trading" className="w-full">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="trading">Trading Signals</TabsTrigger>
           <TabsTrigger value="predictions">AI Predictions</TabsTrigger>
           <TabsTrigger value="technical">Technical Analysis</TabsTrigger>
           <TabsTrigger value="sentiment">Market Sentiment</TabsTrigger>
           <TabsTrigger value="detailed">Detailed View</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="trading" className="space-y-6">
+          <TradingSignals symbol={selectedStock} />
+        </TabsContent>
 
         <TabsContent value="predictions" className="space-y-6">
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
